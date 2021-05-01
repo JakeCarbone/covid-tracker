@@ -11,7 +11,7 @@ let height = 500;
 
 let palette = ["#73a2ab", "#bc586e", "#c79164", "#1c3c4a", "#dbbfc5", "#924f5d", "#cc7e72", "#172121", "#172121"];
 
-input_data = d3.csv('https://raw.githubusercontent.com/JakeCarbone/covid-tracker/master/data/gdp_percentile_data.csv');
+let data = d3.csv('https://raw.githubusercontent.com/JakeCarbone/covid-tracker/master/data/gdp_percentile_data.csv');
 
 
 // https://github.com/JakeCarbone/covid-tracker/blob/master/data/gdp_percentile_data.csv
@@ -121,3 +121,73 @@ let hover = function(svg, path) {
   }
 };
 
+let filter_data = function (owid_data) {
+  let owid_data_copy = [...owid_data];
+  let new_array = [];
+
+  let vaccines_started = false;
+  for (let i = 0; i < owid_data_copy.length; i += 1) {
+    let row = owid_data_copy[i];
+    let v_number = parseInt(row['new_vaccinations_smoothed']);
+
+    if (v_number >= 1) {
+      vaccines_started = true;
+    }
+
+    if (vaccines_started) {
+      new_array.push(row);
+    }
+
+  }
+
+  return new_array;
+};
+
+/////////////////////////////////////////////////////////
+//////////////////// Creating the figure ////////////////
+/////////////////////////////////////////////////////////
+
+let y = d3.scaleLinear()
+  .domain([d3.min(series, d => d3.min(d, d => d[0])), d3.max(series, d => d3.max(d, d => d[1]))])
+  .range([height - margin.bottom, margin.top]);
+
+let x = d3.scaleLinear()
+  .domain(d3.extent(data, d => d.date))
+  .range([margin.left, width - margin.right]);
+
+let area = d3.area()
+  .x(d => x(d.data.date))
+  .y0(d => y(d[0]))
+  .y1(d => y(d[1]))
+  .curve(d3.curveNatural);
+
+
+let series = d3.stack()
+  .keys(['new_vaccinations_smoothed'])//(data.columns.slice(1,data.columns.length-1))
+  .order(d3.stackOrderDescending)
+  .offset(d3.stackOffsetSilhouette)
+  (data);
+
+
+
+let chart = function(){
+  const svg = d3.select('#streamgraph').create("svg")
+    .attr("viewBox", [0, 0, width, height]);
+
+  const path = svg.append("g")
+    .selectAll("path")
+    .data(series[0])
+    .join("path")
+    // .attr("data-genre", d => d.key)
+    .attr("fill", d => color(d.data.continent))
+    .attr("d", area)
+  
+  svg.append("g")
+    .call(xAxis);
+
+  // svg.call(hover, path);
+
+  return svg.node();
+};
+
+chart();

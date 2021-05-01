@@ -324,7 +324,7 @@ class Graph(object):
             object_to_remove = remove_list
 
         config_dict = {
-        'displayModeBar': True,
+        'displayModeBar': False,
         'scrollZoom': False,
         'displaylogo': False,
         'modeBarButtonsToRemove': object_to_remove,
